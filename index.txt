@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>27-0 Challenge</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial,sans-serif;
+background:#080808;
+color:white;
+}
+
+#menu{
+text-align:center;
+padding:30px;
+}
+
+.cardWrap{
+display:flex;
+justify-content:center;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.card{
+width:280px;
+height:160px;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+background:#222;
+border:4px solid #444;
+border-radius:25px;
+cursor:pointer;
+}
+
+.selected{
+border-color:gold;
+}
+
+#startBtn{
+margin-top:25px;
+padding:18px 60px;
+font-size:30px;
+border:none;
+border-radius:15px;
+background:#666;
+color:white;
+cursor:not-allowed;
+}
+
+.ready{
+background:gold !important;
+color:black !important;
+cursor:pointer !important;
+}
+
+#game{
+display:none;
+}
+
+#topBar{
+padding:10px;
+text-align:center;
+font-size:22px;
+background:#111;
+}
+
+.main{
+display:flex;
+}
+
+.field{
+position:relative;
+width:75%;
+height:900px;
+background:#1f8f3c;
+border-right:4px solid white;
+}
+
+.panel{
+width:25%;
+background:#000;
+overflow-y:auto;
+padding:20px;
+}
+
+.pos{
+position:absolute;
+width:110px;
+height:60px;
+background:#202020;
+border:2px solid gold;
+border-radius:10px;
+text-align:center;
+padding-top:5px;
+font-size:12px;
+}
+
+.pos button{
+margin-top:4px;
+background:gold;
+border:none;
+padding:4px 8px;
+cursor:pointer;
+}
+
+.rollBtn{
+width:100%;
+padding:12px;
+margin:5px 0;
+background:gold;
+border:none;
+font-weight:bold;
+cursor:pointer;
+}
+
+.sim{
+width:100%;
+padding:15px;
+font-size:18px;
+background:limegreen;
+border:none;
+margin-top:15px;
+cursor:pointer;
+}
+
+h1,h2,h3{
+margin:10px;
+}
+
+#result{
+white-space:pre-line;
+margin-top:15px;
+}
+
+.playerCard{
+background:#111;
+padding:10px;
+margin:5px 0;
+border:1px solid gold;
+}
+</style>
+</head>
+<body>
+
+<div id="menu">
+
+<h1>🏆 THE 27-0 CHALLENGE 🏆</h1>
+
+<h2>Select Player Pool</h2>
+
+<div class="cardWrap">
+<div class="card era" data-mode="alltime">
+<h2>All-Time NRL</h2>
+<p>Legends & Historic Teams</p>
+</div>
+
+<div class="card era" data-mode="current">
+<h2>Current NRL</h2>
+<p>Current Stars</p>
+</div>
+</div>
+
+<h2>Select Difficulty</h2>
+
+<div class="cardWrap">
+<div class="card diff" data-rerolls="3">
+<h2>Easy</h2>
+<p>3 Rerolls</p>
+</div>
+
+<div class="card diff" data-rerolls="0">
+<h2>Hard</h2>
+<p>No Rerolls</p>
+</div>
+</div>
+
+<button id="startBtn">START</button>
+
+</div>
+
+<div id="game">
+
+<div id="topBar">
+Rerolls: <span id="rerolls">0</span> |
+Team OVR: <span id="ovr">0</span>
+</div>
+
+<div class="main">
+
+<div class="field">
+
+<div class="pos" data-pos="FB" style="left:45%;top:780px;">FB<br><button>Draft</button></div>
+
+<div class="pos" data-pos="W" style="left:20%;top:650px;">Wing<br><button>Draft</button></div>
+<div class="pos" data-pos="W" style="left:70%;top:650px;">Wing<br><button>Draft</button></div>
+
+<div class="pos" data-pos="C" style="left:30%;top:520px;">Centre<br><button>Draft</button></div>
+<div class="pos" data-pos="C" style="left:60%;top:520px;">Centre<br><button>Draft</button></div>
+
+<div class="pos" data-pos="LOCK" style="left:45%;top:400px;">Lock<br><button>Draft</button></div>
+
+<div class="pos" data-pos="PROP" style="left:35%;top:300px;">Prop<br><button>Draft</button></div>
+<div class="pos" data-pos="PROP" style="left:55%;top:300px;">Prop<br><button>Draft</button></div>
+
+<div class="pos" data-pos="SR" style="left:20%;top:180px;">2RF<br><button>Draft</button></div>
+<div class="pos" data-pos="SR" style="left:70%;top:180px;">2RF<br><button>Draft</button></div>
+
+<div class="pos" data-pos="HK" style="left:45%;top:180px;">Hooker<br><button>Draft</button></div>
+
+<div class="pos" data-pos="HB" style="left:35%;top:60px;">HB<br><button>Draft</button></div>
+<div class="pos" data-pos="FE" style="left:55%;top:60px;">5/8<br><button>Draft</button></div>
+
+</div>
+
+<div class="panel">
+
+<h2>Draft Centre</h2>
+
+<div id="draftInfo">
+Select a position to begin.
+</div>
+
+<button class="sim" onclick="simulateSeason()">
+SIMULATE SEASON
+</button>
+
+<div id="result"></div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let mode=null;
+let rerolls=0;
+
+let draftedPlayers=[];
+let currentPosBox=null;
+
+const allTimeTeams=[
+
+{
+team:"Storm",
+year:"2017",
+players:{
+FB:[{name:"Billy Slater",rating:99}],
+W:[{name:"Josh Addo-Carr",rating:96},{name:"Suliasi Vunivalu",rating:94}],
+C:[{name:"Will Chambers",rating:91}],
+FE:[{name:"Cameron Munster",rating:98}],
+HB:[{name:"Cooper Cronk",rating:99}],
+HK:[{name:"Cameron Smith",rating:100}],
+PROP:[{name:"Jesse Bromwich",rating:94},{name:"Jordan McLean",rating:90}],
+SR:[{name:"Felise Kaufusi",rating:92},{name:"Tohu Harris",rating:96}],
+LOCK:[{name:"Dale Finucane",rating:91}]
+}
+},
+
+{
+team:"Broncos",
+year:"2000",
+players:{
+FB:[{name:"Rhys Wesser",rating:92}],
+W:[{name:"Wendell Sailor",rating:98},{name:"Lote Tuqiri",rating:97}],
+C:[{name:"Tonie Carroll",rating:93}],
+FE:[{name:"Darren Lockyer",rating:99}],
+HB:[{name:"Allan Langer",rating:99}],
+HK:[{name:"Kerrod Walters",rating:92}],
+PROP:[{name:"Shane Webcke",rating:98},{name:"Petero Civoniceva",rating:97}],
+SR:[{name:"Gorden Tallis",rating:99},{name:"Brad Meyers",rating:88}],
+LOCK:[{name:"Brad Thorn",rating:97}]
+}
+},
+
+{
+team:"Panthers",
+year:"2023",
+players:{
+FB:[{name:"Dylan Edwards",rating:97}],
+W:[{name:"Brian To'o",rating:98},{name:"Sunia Turuva",rating:91}],
+C:[{name:"Stephen Crichton",rating:96}],
+FE:[{name:"Jarome Luai",rating:95}],
+HB:[{name:"Nathan Cleary",rating:100}],
+HK:[{name:"Mitch Kenny",rating:89}],
+PROP:[{name:"Moses Leota",rating:94},{name:"James Fisher-Harris",rating:97}],
+SR:[{name:"Liam Martin",rating:96},{name:"Scott Sorensen",rating:91}],
+LOCK:[{name:"Isaah Yeo",rating:98}]
+}
+}
+
+];
+
+const currentTeams=[
+
+{
+team:"Panthers",
+players:{
+FB:[{name:"Dylan Edwards",rating:97}],
+W:[{name:"Brian To'o",rating:98}],
+C:[{name:"Izack Tago",rating:91}],
+FE:[{name:"Blaize Talagi",rating:88}],
+HB:[{name:"Nathan Cleary",rating:100}],
+HK:[{name:"Mitch Kenny",rating:89}],
+PROP:[{name:"Moses Leota",rating:94},{name:"Lindsay Smith",rating:90}],
+SR:[{name:"Liam Martin",rating:96},{name:"Scott Sorensen",rating:91}],
+LOCK:[{name:"Isaah Yeo",rating:98}]
+}
+},
+
+{
+team:"Storm",
+players:{
+FB:[{name:"Ryan Papenhuyzen",rating:96}],
+W:[{name:"Will Warbrick",rating:91}],
+C:[{name:"Jack Howarth",rating:91}],
+FE:[{name:"Cameron Munster",rating:98}],
+HB:[{name:"Jahrome Hughes",rating:97}],
+HK:[{name:"Harry Grant",rating:99}],
+PROP:[{name:"Nelson Asofa-Solomona",rating:92}],
+SR:[{name:"Shawn Blore",rating:89}],
+LOCK:[{name:"Trent Loiero",rating:89}]
+}
+},
+
+{
+team:"Broncos",
+players:{
+FB:[{name:"Reece Walsh",rating:97}],
+W:[{name:"Jesse Arthars",rating:89}],
+C:[{name:"Kotoni Staggs",rating:94}],
+FE:[{name:"Ben Hunt",rating:94}],
+HB:[{name:"Adam Reynolds",rating:95}],
+HK:[{name:"Billy Walters",rating:85}],
+PROP:[{name:"Payne Haas",rating:99}],
+SR:[{name:"Patrick Carrigan",rating:98}],
+LOCK:[{name:"Kobe Hetherington",rating:87}]
+}
+}
+
+];
+
+document.querySelectorAll(".era").forEach(card=>{
+card.onclick=()=>{
+document.querySelectorAll(".era").forEach(c=>c.classList.remove("selected"));
+card.classList.add("selected");
+mode=card.dataset.mode;
+checkReady();
+};
+});
+
+document.querySelectorAll(".diff").forEach(card=>{
+card.onclick=()=>{
+document.querySelectorAll(".diff").forEach(c=>c.classList.remove("selected"));
+card.classList.add("selected");
+rerolls=parseInt(card.dataset.rerolls);
+checkReady();
+};
+});
+
+function checkReady(){
+if(mode!==null){
+document.getElementById("startBtn").classList.add("ready");
+}
+}
+
+document.getElementById("startBtn").onclick=()=>{
+if(mode===null)return;
+
+document.getElementById("menu").style.display="none";
+document.getElementById("game").style.display="block";
+document.getElementById("rerolls").innerText=rerolls;
+};
+
+document.querySelectorAll(".pos button").forEach(btn=>{
+
+btn.onclick=()=>{
+
+const pos=
+btn.parentElement.dataset.pos;
+
+openDraft(pos,btn.parentElement);
+
+};
+
+});
+
+function openDraft(pos,box){
+
+currentPosBox=box;
+
+let source=
+mode==="alltime"
+?allTimeTeams
+:currentTeams;
+
+let rolled=
+source[
+Math.floor(Math.random()*source.length)
+];
+
+let players=
+rolled.players[pos];
+
+if(!players){
+document.getElementById("draftInfo").innerHTML=
+"No players available.";
+return;
+}
+
+let html=`
+<h2>${rolled.team}</h2>
+`;
+
+if(rolled.year){
+html+=`<h3>${rolled.year}</h3>`;
+}
+
+html+=`<h3>${pos}</h3>`;
+
+players.forEach(player=>{
+
+if(
+draftedPlayers.some(
+p=>p.name===player.name
+)
+)return;
+
+html+=`
+<button class="rollBtn"
+onclick="selectPlayer(
+'${player.name}',
+${player.rating}
+)">
+${player.name}
+(${player.rating})
+</button>
+`;
+
+});
+
+document.getElementById("draftInfo").innerHTML=html;
+}
+
+function selectPlayer(name,rating){
+
+if(
+draftedPlayers.some(
+p=>p.name===name
+)
+)return;
+
+draftedPlayers.push({
+name,
+rating
+});
+
+currentPosBox.innerHTML=
+`<strong>${name}</strong><br>OVR ${rating}`;
+
+updateOVR();
+
+document.getElementById("draftInfo").innerHTML=
+`
+<div class='playerCard'>
+<h3>${name}</h3>
+OVR ${rating}
+</div>
+`;
+}
+
+function updateOVR(){
+
+if(draftedPlayers.length===0)return;
+
+let total=0;
+
+draftedPlayers.forEach(
+p=>total+=p.rating
+);
+
+document.getElementById("ovr")
+.innerText=
+(total/draftedPlayers.length)
+.toFixed(1);
+}
+
+function simulateSeason(){
+
+if(draftedPlayers.length<13){
+
+alert("Draft all 13 positions first!");
+
+return;
+}
+
+let total=0;
+
+draftedPlayers.forEach(
+p=>total+=p.rating
+);
+
+let teamOVR=
+total/13;
+
+let wins=0;
+
+let mvp=
+draftedPlayers[
+Math.floor(
+Math.random()*draftedPlayers.length
+)
+];
+
+for(let round=1;round<=27;round++){
+
+let opponent=
+85+
+Math.random()*15;
+
+let performance=
+teamOVR+
+(Math.random()*8-4);
+
+if(performance>opponent){
+wins++;
+}
+
+}
+
+let losses=
+27-wins;
+
+let result="";
+
+if(wins===27){
+
+result=
+"🏆 PERFECT SEASON 🏆\n\n"+
+"27-0\n\n"+
+"Greatest Team Ever Assembled\n\n";
+
+}else{
+
+result=
+"Season Complete\n\n"+
+wins+"-"+losses+"\n\n";
+
+}
+
+result+=
+"MVP: "+mvp.name+
+"\n\n"+
+"Team OVR: "+
+teamOVR.toFixed(1);
+
+document.getElementById("result")
+.innerText=result;
+}
+
+</script>
+
+</body>
+</html>
